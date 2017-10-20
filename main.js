@@ -9,9 +9,10 @@ var main = () => {
     ctx.lineWidth = 1;
     
     // call world 
-    var ri = 0.0239;
+    var ri = 0.0201; // h / 2 : (m / ρ)^1/Dimension
     var timeStep = 0.004;
-    var world = new World(0.004, ri, 600);
+    var rho0 = 0.5124;
+    var world = new World(timeStep, ri, rho0);
     
     // set ratio
     var pixPerMeter = 800;
@@ -23,8 +24,8 @@ var main = () => {
     leftFlg = rightFlg = upFlg = downFlg = false;
 
     // flags related to drawing
-    var drawRadius = false;
-    var drawMesh = false;
+    var drawRadius = 0;
+    var drawMesh = 0;
     var drs = _ => { drawRadius ^= true; };
     var drm = _ => { drawMesh ^= true; };
     
@@ -82,7 +83,6 @@ var main = () => {
         world.elecY = 0;
         var dE = 0.01;
         
-        //console.log(rightFlg, leftFlg, upFlg, downFlg);
         if(rightFlg) world.elecX += dE;
         if(leftFlg) world.elecX -= dE;
         if(upFlg) world.elecY -= dE;
@@ -93,6 +93,14 @@ var main = () => {
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         //var colors = ;
+        Ary.map(wall => {
+            var x = canvas.width / 2 + wall.x * pixPerMeter;
+            var y = canvas.height / 2 + wall.y * pixPerMeter;
+            var theta = wall.a;
+            var w = wall.w * pixPerMeter;
+            var h = wall.h * pixPerMeter;
+            fillRect(x, y, w, h, theta);
+        }, world.walls);
         Ary.map(particle => {
             var x = canvas.width / 2 + particle.x * pixPerMeter;
             var y = canvas.height / 2 + particle.y * pixPerMeter;
@@ -109,14 +117,7 @@ var main = () => {
                 ctx.stroke();
             }
         }, world.particles);
-        Ary.map(wall => {
-            var x = canvas.width / 2 + wall.x * pixPerMeter;
-            var y = canvas.height / 2 + wall.y * pixPerMeter;
-            var theta = wall.a;
-            var w = wall.w * pixPerMeter;
-            var h = wall.h * pixPerMeter;
-            fillRect(x, y, w, h, theta);
-        }, world.walls);
+        
         if(drawMesh){
             for(var i = 0; i < 30; ++i){
                 ctx.beginPath();
@@ -136,10 +137,10 @@ var main = () => {
     function init(){
         var w = canvas.width / pixPerMeter / 3;
         var h = canvas.height / pixPerMeter / 3;
-        for(var i = 0; i < 10; i+=0.5){
-            for(var j = 0; j < 10; j+=0.5){
-                var x = (-4.5 + i) * 0.010;
-                var y = (-4.5 + j) * 0.010;
+        for(var i = 0; i < 5; i+=0.5){
+            for(var j = 0; j < 20; j+=0.5){
+                var x = (-6.0 + i) * 0.040;
+                var y = (-14.0 + j) * 0.040;
                 world.addParticle(new Particle(x, y, false));
             }
         }
@@ -173,7 +174,7 @@ var main = () => {
     setInterval(() => {
         step();
         draw();
-    }, 16);
+    }, 8);
     
     return { world : world, 
              drs : drs,

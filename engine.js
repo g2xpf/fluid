@@ -18,7 +18,7 @@ class Particle {
         this.mass = 0.00020543;      // [kg]
         this.isStatic = isFluid;
         this.p = 0;     
-        this.r = 0.004;  // 0.004 [m] as default 
+        this.r = 0.007;  // 0.004 [m] as default 
         this.rho = 0;
         this.av = 0;
         this.inverseMass = this.mass == 0 ? 0 : 1 / this.mass;
@@ -163,12 +163,13 @@ class ContactConstraint {
 		else if (impT < -maxTangentImpulse) impT = -maxTangentImpulse;
 		
 		// apply tangent impulse
-		this.obj1.vx += impT * this.tx * this.obj1.inverseMass;
+		/*this.obj1.vx += impT * this.tx * this.obj1.inverseMass;
 		this.obj1.vy += impT * this.ty * this.obj1.inverseMass;
 		this.obj1.av += impT * (this.r1x * this.ty - this.r1y * this.tx) * this.obj1.inverseInertia;
 		this.obj2.vx -= impT * this.tx * this.obj2.inverseMass;
 		this.obj2.vy -= impT * this.ty * this.obj2.inverseMass;
 		this.obj2.av -= impT * (this.r2x * this.ty - this.r2y * this.tx) * this.obj2.inverseInertia;
+        */
 
         this.obj1.av = 0;
         this.obj2.av = 0;
@@ -338,13 +339,13 @@ class World {
     _gradSpikyKernel(r, h){
         var alpha = -30 / (PI * this._power(h, 5)); 
         if(0 < r && r <= h){
-            return alpha * (h - r);
+            return alpha * this._power(h - r, 2) / r;
         }else{
             return 0;
         }
     }
 
-    _viscosityKernel(r, h){
+    /*_viscosityKernel(r, h){
         var alpha = 10 / (3 * PI * h * h);
         if(0 < r && r <= h){
             return  alpha * (-this._power(r, 3) / (2 * this._power(h, 3)) + this._power(r, 2) / this._power(h, 2) + h / (2 * r) - 1);
@@ -353,7 +354,7 @@ class World {
         }
     }
 
-    /*_deltaViscosityKernel(r, h){
+    _deltaViscosityKernel(r, h){
         var alpha = 10 / (3 * PI * h * h);
         if(0 < r && r <= h){
             return  alpha * ((-3) * this._power(r, 2) / (2 * this._power(h, 3)) + 2 * r / this._power(h, 2) - h / (2 * this._power(r, 2)) - 1);
@@ -371,20 +372,20 @@ class World {
         }
     }
     
-    _gradViscosityKernel(r, h){
+    /*_gradViscosityKernel(r, h){
         var alpha = 10 / (3 * PI * this._power(h, 4));
         if(0 < r && r <= h){
             return alpha * (-3 * r / (2 * h) + 2 - this._power(h, 3) / (2 * this._power(r, 3)));
         }else{
             return 0;
         }
-    }
+    }*/
 
     _laplacianViscosityKernel(r, h){
-        var alpha = 45.0 / (PI * this._power(h, 6));
+        var alpha = 20.0 / (3.0 * (PI * this._power(h, 5)));
         var ret;
         if(0 < r && r <= h){
-            ret = alpha * this._power(h - r, 4);
+            ret = alpha * (h - r);
         }else{
             ret = 0;
         }
@@ -393,7 +394,7 @@ class World {
 
     _getPressure(rho){
         var gamma = 7;
-        var c = 1497.28;
+        var c = 88.5;
         var ret;
         if(rho > this.rho0){
             ret = c * c * this.rho0 / gamma * (Math.pow(rho / this.rho0, gamma) - 1);
@@ -443,7 +444,7 @@ class World {
     _solve(){
         this._rhoInit();
         var len = this.particles.length;
-        var mu = 0.9;
+        var mu = 0.7;
         for(var i = 0; i < len; ++i){
             var p1 = this.particles[i];
             var x = p1.meshX;
@@ -467,8 +468,8 @@ class World {
 
         for(var i = 0; i < len; ++i){
             var p1 = this.particles[i];
-            p1.vx += this.gravityX * this.dt / 11;// * (this.dt / 0.016);
-            p1.vy += this.gravityY * this.dt / 11;// * (this.dt / 0.016);
+            p1.vx += this.gravityX * this.dt / 9;// * (this.dt / 0.016);
+            p1.vy += this.gravityY * this.dt / 9;// * (this.dt / 0.016);
             if(p1.isStatic) continue;
             var x = p1.meshX;
             var y = p1.meshY;
@@ -488,12 +489,12 @@ class World {
 
                         var gradP = this._gradSpikyKernel(r, this.ri);
                         //var fpx = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dx;
-                        var fpx = -((p1.p + p2.p) / (2 * p2.rho)) * gradP * dx / p1.rho / 800;
+                        var fpx = ((p1.p + p2.p) / (2 * p2.rho)) * gradP * dx / p1.rho;
                         //var fpy = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dy;
-                        var fpy = -((p1.p + p2.p) / (2 * p2.rho)) * gradP * dy / p1.rho / 800;
+                        var fpy = ((p1.p + p2.p) / (2 * p2.rho)) * gradP * dy / p1.rho;
                         var gradV = this._laplacianViscosityKernel(r, this.ri);
-                        var fvx = mu * (p2.vx - p1.vx) / p2.rho * gradV * dx / p1.rho / 3000;
-                        var fvy = mu * (p2.vy - p1.vy) / p2.rho * gradV * dy / p1.rho / 3000;
+                        var fvx = mu * (p2.vx - p1.vx) / p2.rho * gradV * dx / p1.rho;
+                        var fvy = mu * (p2.vy - p1.vy) / p2.rho * gradV * dy / p1.rho;
 
                         p1.vx += p2.mass * (fpx + fvx) * this.dt;
                         p1.vy += p2.mass * (fpy + fvy) * this.dt;
