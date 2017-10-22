@@ -196,7 +196,7 @@ class World {
         this.gravityY = 9.8;
         this.elecX = 0;
         this.elecY = 0;
-
+        this.k = 0.6;       // gas constant
         // the radius of influence
         this.ri = ri;
         this.rho0 = rho0;
@@ -406,8 +406,8 @@ class World {
     }
 
     _getPressure2(rho){
-        var k = 1.0; // constant value of gas
-        return k * (rho - this.rho0);
+        //; // constant value of gas
+        return this.k * (rho - this.rho0);
     }
 
     step(){
@@ -493,8 +493,13 @@ class World {
                         //var fpy = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dy;
                         var fpy = ((p1.p + p2.p) / (2 * p2.rho)) * gradP * dy / p1.rho;
                         var gradV = this._laplacianViscosityKernel(r, this.ri);
-                        var fvx = mu * (p2.vx - p1.vx) / p2.rho * gradV * dx / p1.rho;
-                        var fvy = mu * (p2.vy - p1.vy) / p2.rho * gradV * dy / p1.rho;
+                        var fvx = mu * (p2.vx - p1.vx) / p2.rho * gradV * dx / p1.rho*1.3;
+                        var fvy = mu * (p2.vy - p1.vy) / p2.rho * gradV * dy / p1.rho*1.3;
+    
+                        fpx *= 0.4;
+                        fpy *= 0.4;
+                        fvx *= 0.3;
+                        fvy *= 0.3;
 
                         p1.vx += p2.mass * (fpx + fvx) * this.dt;
                         p1.vy += p2.mass * (fpy + fvy) * this.dt;

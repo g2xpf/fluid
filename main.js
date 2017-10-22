@@ -9,9 +9,9 @@ var main = () => {
     ctx.lineWidth = 1;
     
     // call world 
-    var ri = 0.0201; // h / 2 : (m / ρ)^1/Dimension
+    var ri = 0.0531; // h / 2 : (m / ρ)^1/Dimension
     var timeStep = 0.004;
-    var rho0 = 0.5124;
+    var rho0 = 0.2524;
     var world = new World(timeStep, ri, rho0);
     
     // set ratio
@@ -24,7 +24,7 @@ var main = () => {
     leftFlg = rightFlg = upFlg = downFlg = false;
 
     // flags related to drawing
-    var drawRadius = 0;
+    var drawRadius = 1;
     var drawMesh = 0;
     var drs = _ => { drawRadius ^= true; };
     var drm = _ => { drawMesh ^= true; };
@@ -83,10 +83,12 @@ var main = () => {
         world.elecY = 0;
         var dE = 0.01;
         
-        if(rightFlg) world.elecX += dE;
-        if(leftFlg) world.elecX -= dE;
-        if(upFlg) world.elecY -= dE;
-        if(downFlg) world.elecY += dE;
+        if(rightFlg) world.k += 0.001;
+        if(leftFlg) world.k -= 0.001;
+        if(upFlg) world.rho0 += 0.0001;
+        if(downFlg) world.rho0 -= 0.0001;
+        world.rho0 = floor(world.rho0 * 100000) / 100000;
+        world.k    = floor(world.k    * 10000) / 10000;
     }
 
     function draw(){
@@ -111,13 +113,20 @@ var main = () => {
             ctx.fillStyle = colorScale(rho);
             ctx.arc(x, y, r, 0, TWO_PI, false);
             ctx.fill();
+            ctx.globalAlpha = 0.4;
             if(drawRadius){
                 ctx.beginPath();
                 ctx.arc(x, y, ri, 0, TWO_PI, false);
                 ctx.stroke();
             }
+            ctx.globalAlpha = 1.0;
         }, world.particles);
         
+        ctx.fillStyle = "black";
+        ctx.font = "20px 'Courier New'";
+        ctx.fillText("rho : " + world.rho0, 30, 30);
+        ctx.fillText("k   : " + world.k   , 30, 60);
+
         if(drawMesh){
             for(var i = 0; i < 30; ++i){
                 ctx.beginPath();
@@ -138,9 +147,9 @@ var main = () => {
         var w = canvas.width / pixPerMeter / 3;
         var h = canvas.height / pixPerMeter / 3;
         for(var i = 0; i < 5; i+=0.5){
-            for(var j = 0; j < 20; j+=0.5){
+            for(var j = 0; j < 10; j+=0.5){
                 var x = (-6.0 + i) * 0.040;
-                var y = (-14.0 + j) * 0.040;
+                var y = (-4.0 + j) * 0.040;
                 world.addParticle(new Particle(x, y, false));
             }
         }
