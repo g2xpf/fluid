@@ -465,7 +465,7 @@ class World {
             var p = this._getPressure2(rho);
             p1.p = p;
         }
-
+        hogehoge
         for(var i = 0; i < len; ++i){
             var p1 = this.particles[i];
             p1.vx += this.gravityX * this.dt / 9;// * (this.dt / 0.016);
