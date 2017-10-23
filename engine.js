@@ -10,11 +10,13 @@ var max = (x, y) => Math.max(x, y);
 var floor = x => Math.floor(x);
 var isZero = x => x == 0;
 class Particle {
-    constructor(x, y, isFluid){
+    constructor(x, y, z, isFluid){
         this.x = x;
         this.y = y;
+        this.z = z;
         this.vx = 0;//rand() - 0.5;
         this.vy = 0;//rand() - 0.5;
+        this.vz = 0;
         this.mass = 0.00020543;      // [kg]
         this.isStatic = isFluid;
         this.p = 0;     
@@ -26,19 +28,22 @@ class Particle {
 	    this.inverseInertia = this.inertia == 0 ? 0 : 1 / this.inertia;
         this.meshX;
         this.meshY;
+        this.meshZ;
     }
 };
 
 class Wall {
-    constructor(x, y, w, h, theta){
+    constructor(x, y, z, w, h, theta){
         this.x = x;
         this.y = y;
+        this.z = z;
         this.w = w;
         this.h = h;
         this.a = theta;
         this.av = 0;
         this.vx = 0;
         this.vy = 0;
+        this.vz = 0;
         this.av = 0;
         this.mass = 0;
         this.inverseMass = 0;
@@ -182,15 +187,8 @@ class World {
         this.particles = [];
         this.walls = [];
         this.constraints = [];
-        this.mesh = new Array(100);
-        for(var i = 0; i < 100; ++i){
-            this.mesh[i] = new Array(100);
-        }
-        for(var i = 0; i < 100; ++i){
-            for(var j = 0; j < 100; ++j){
-                this.mesh[i][j] = [];
-            }
-        }
+        // initialize meshes
+        this.mesh;
         this.dt = dt;
         this.gravityX = 0.0;
         this.gravityY = 9.8;
@@ -202,22 +200,40 @@ class World {
         this.rho0 = rho0;
     }
 
+    makeMesh(){
+        var meshNum = 20;
+        this.mesh = new Array(meshNum);
+        for(var i = 0; i < meshNum; ++i){
+            this.mesh[i] = new Array(meshNum);
+            for(var j = 0; j < meshNum; ++j){
+                this.mesh[i][j] = new Array(meshNum);
+                for(var k = 0; k < meshNum; ++k){
+                    this.mesh[i][j][k] = [];
+                }    
+            }
+        }
+    }
+
     _meshInit(){
         for(var i = 0, len1 = this.mesh.length; i < len1; i++){
             for(var j = 0, len2 = this.mesh[i].length; j < len2; j++){
-                this.mesh[i][j] = [];
+                for(var k = 0, len3 = this.mesh[i][j].length; k < len3; ++k){
+                    this.mesh[i][j][k] = [];
+                }
             }
         }
     }
 
     _addToMesh(){
         Ary.map(particle => {
-            var x = 49 + floor(particle.x / this.ri / 2);
-            var y = 49 + floor(particle.y / this.ri / 2);
-            if(0 <= x && x < 100 && 0 <= y && y < 100){
+            var x = 9 + floor(particle.x / this.ri / 2);
+            var y = 9 + floor(particle.y / this.ri / 2);
+            var z = 9 + floor(particle.z / this.ri / 2);
+            if(0 <= x && x < 20 && 0 <= y && y < 20 && 0 <= z && z < 20){
                 particle.meshX = x;
                 particle.meshY = y;
-                this.mesh[x][y].push(particle);
+                particle.meshZ = z;
+                this.mesh[x][y][z].push(particle);
             }
         }, this.particles);
     }
@@ -337,7 +353,7 @@ class World {
     };
 
     _gradSpikyKernel(r, h){
-        var alpha = -30 / (PI * this._power(h, 5)); 
+        var alpha = -45 / (PI * this._power(h, 6));
         if(0 < r && r <= h){
             return alpha * this._power(h - r, 2) / r;
         }else{
@@ -364,7 +380,7 @@ class World {
     }*/
 
     _poly6Kernel(r, h){
-        var alpha = 4 / (PI * this._power(h, 8));
+        var alpha = 315 / (64 * PI * this._power(h, 9));
         if(0 <= r && r <= h){
             return alpha * this._power((this._power(h, 2) - this._power(r, 2)), 3);
         }else{
@@ -382,7 +398,7 @@ class World {
     }*/
 
     _laplacianViscosityKernel(r, h){
-        var alpha = 20.0 / (3.0 * (PI * this._power(h, 5)));
+        var alpha = 45.0 / (PI * this._power(h, 5));
         var ret;
         if(0 < r && r <= h){
             ret = alpha * (h - r);
@@ -449,61 +465,68 @@ class World {
             var p1 = this.particles[i];
             var x = p1.meshX;
             var y = p1.meshY;
-            for(var dx = -1; dx <= 1; ++dx){
+            var z = p1.meshZ;
+            for(var dz = -1; dz <= 1; ++dz){
                 for(var dy = -1; dy <= 1; ++dy){
-                    var nx = x + dx; 
-                    var ny = y + dy; 
-                    if(!(0 <= nx && nx < 100 && 0 <= ny && ny < 100)) continue;
-                    Ary.map( p2 => {
-                        var r = sqrt(this._power(p2.x - p1.x, 2) + this._power(p2.y - p1.y, 2));
-                        var k = this._poly6Kernel(r, this.ri);
-                        p1.rho += p2.mass * k;
-                    }, this.mesh[nx][ny]); 
+                    for(var dx = -1; dx <= 1; ++dx){
+                        var nx = x + dx; 
+                        var ny = y + dy; 
+                        var nz = z + dz;
+                        if(!(0 <= nx && nx < 20 && 0 <= ny && ny < 20 && 0 <= nz && nz < 20)) continue;
+                        Ary.map( p2 => {
+                            var r = sqrt(this._power(p2.x - p1.x, 2) + this._power(p2.y - p1.y, 2) + this._power(p2.z - p1.z, 2));
+                            var k = this._poly6Kernel(r, this.ri);
+                            p1.rho += p2.mass * k;
+                        }, this.mesh[nx][ny][nz]); 
+                    }
                 }
             }
             var rho = p1.rho;
             var p = this._getPressure2(rho);
             p1.p = p;
         }
-        hogehoge
         for(var i = 0; i < len; ++i){
             var p1 = this.particles[i];
             p1.vx += this.gravityX * this.dt / 9;// * (this.dt / 0.016);
             p1.vy += this.gravityY * this.dt / 9;// * (this.dt / 0.016);
+            p1.vz += this.gravityZ * this.dt / 9;// * (this.dt / 0.016);
             if(p1.isStatic) continue;
             var x = p1.meshX;
             var y = p1.meshY;
-            for(var dx = -1; dx <= 1; ++dx){
+            var z = p1.meshZ;
+            for(var dz = -1; dz <= 1; ++dz){
                 for(var dy = -1; dy <= 1; ++dy){
-                    var nx = x + dx; 
-                    var ny = y + dy; 
-                    if(!(0 <= nx && nx < 100 && 0 <= ny && ny < 100)) continue;
-                    Ary.map(p2 => {
-                        //if(i === j) continue;
-                        var dx = p2.x - p1.x;
-                        var dy = p2.y - p1.y;
-                        var r = sqrt(this._power(dx, 2) + this._power(dy, 2));
+                    for(var dx = -1; dx <= 1; ++dx){
+                        var nx = x + dx; 
+                        var ny = y + dy; 
+                        var nz = z + dz;
+                        if(!(0 <= nx && nx < 20 && 0 <= ny && ny < 20 && 0 <= nz && nz < 20)) continue;
+                        Ary.map(p2 => {
+                            //if(i === j) continue;
+                            var dx = p2.x - p1.x;
+                            var dy = p2.y - p1.y;
+                            var dz = p2.z - p1.z;
+                            var r = sqrt(this._power(dx, 2) + this._power(dy, 2) + this._power(dz, 2));
 
-                        // fp : pressure
-                        // fv : viscosity
+                            // fp : pressure
+                            // fv : viscosity
 
-                        var gradP = this._gradSpikyKernel(r, this.ri);
-                        //var fpx = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dx;
-                        var fpx = ((p1.p + p2.p) / (2 * p2.rho)) * gradP * dx / p1.rho;
-                        //var fpy = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dy;
-                        var fpy = ((p1.p + p2.p) / (2 * p2.rho)) * gradP * dy / p1.rho;
-                        var gradV = this._laplacianViscosityKernel(r, this.ri);
-                        var fvx = mu * (p2.vx - p1.vx) / p2.rho * gradV * dx / p1.rho*1.3;
-                        var fvy = mu * (p2.vy - p1.vy) / p2.rho * gradV * dy / p1.rho*1.3;
-    
-                        fpx *= 0.4;
-                        fpy *= 0.4;
-                        fvx *= 0.3;
-                        fvy *= 0.3;
+                            var gradP = this._gradSpikyKernel(r, this.ri);
+                            //var fpx = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dx;
+                            var fpx = ((p1.p + p2.p) / (2 * p2.rho)) * gradP * dx / p1.rho;
+                            //var fpy = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dy;
+                            var fpy = ((p1.p + p2.p) / (2 * p2.rho)) * gradP * dy / p1.rho;
+                            var fpz = ((p1.p + p2.p) / (2 * p2.rho)) * gradP * dz / p1.rho;
+                            var gradV = this._laplacianViscosityKernel(r, this.zi);
+                            var fvx = mu * (p2.vx - p1.vx) / p2.rho * gradV * dx / p1.rho;
+                            var fvy = mu * (p2.vy - p1.vy) / p2.rho * gradV * dy / p1.rho;
+                            var fvz = mu * (p2.vz - p1.vz) / p2.rho * gradV * dz / p1.rho;
 
-                        p1.vx += p2.mass * (fpx + fvx) * this.dt;
-                        p1.vy += p2.mass * (fpy + fvy) * this.dt;
-                    }, this.mesh[nx][ny]);
+                            p1.vx += p2.mass * (fpx + fvx) * this.dt;
+                            p1.vy += p2.mass * (fpy + fvy) * this.dt;
+                            p1.vz += p2.mass * (fpz + fvz) * this.dt;
+                        }, this.mesh[nx][ny][nz]);
+                    }
                 }
             }
         }
@@ -515,8 +538,10 @@ class World {
             //if(!particle.isStatic){
                 particle.vx += this.elecX;
                 particle.vy += this.elecY;
+                particle.vz += this.elecZ;
                 particle.x += particle.vx * this.dt;
                 particle.y += particle.vy * this.dt;
+                particle.z += particle.vz * this.dt;
             //}
         }, this.particles);
     }

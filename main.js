@@ -150,14 +150,16 @@ var main = () => {
             for(var j = 0; j < 10; j+=0.5){
                 var x = (-6.0 + i) * 0.040;
                 var y = (-4.0 + j) * 0.040;
-                world.addParticle(new Particle(x, y, false));
+                var z = rand() * 0.040;
+                world.addParticle(new Particle(x, y, z, false));
             }
         }
         
         var r = min(canvas.width, canvas.height) / pixPerMeter / 3;
-        world.addWall(new Wall(0, r, 0.12, 2.0, PI / 2));
-        world.addWall(new Wall(r, 0, 0.12, 0.9, 0));
-        world.addWall(new Wall(-r, 0, 0.12, 0.9, 0));
+        world.makeMesh();
+        world.addWall(new Wall(0, r, 0, 0.12, 2.0, PI / 2));
+        world.addWall(new Wall(r, 0, 0, 0.12, 0.9, 0));
+        world.addWall(new Wall(-r, 0, 0, 0.12, 0.9, 0));
     }
     
     function moveWall(){
