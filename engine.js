@@ -20,7 +20,7 @@ class Particle {
         this.mass = 0.00020543;      // [kg]
         this.isStatic = isFluid;
         this.p = 0;     
-        this.r = 0.007;  // 0.004 [m] as default 
+        this.r = 0.004;  // 0.004 [m] as default 
         this.rho = 0;
         this.av = 0;
         this.inverseMass = this.mass == 0 ? 0 : 1 / this.mass;

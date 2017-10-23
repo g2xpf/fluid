@@ -9,9 +9,9 @@ var main = () => {
     ctx.lineWidth = 1;
     
     // call world 
-    var ri = 0.0531; // h / 2 : (m / ρ)^1/Dimension
+    var ri = 0.01; // h / 2 : (m / ρ)^1/Dimension
     var timeStep = 0.004;
-    var rho0 = 0.2524;
+    var rho0 = 600;
     var world = new World(timeStep, ri, rho0);
     
     // set ratio
