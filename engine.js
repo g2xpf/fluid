@@ -401,7 +401,7 @@ class World {
 
     _rhoInit(){
         Ary.map(particle => {
-            particle.rho = 200;
+            particle.rho = 170;
         }, this.particles);  
     };
 
@@ -445,9 +445,9 @@ class World {
             p1.vy += this.elecY;
             p1.vz += this.elecZ;
 
-            p1.vx += this.gravityX * this.dt / 3;// * (this.dt / 0.016);
-            p1.vy += this.gravityY * this.dt / 3;// * (this.dt / 0.016);
-            p1.vz += this.gravityZ * this.dt / 3;// * (this.dt / 0.016);
+            p1.vx += this.gravityX * this.dt / 1;// * (this.dt / 0.016);
+            p1.vy += this.gravityY * this.dt / 1;// * (this.dt / 0.016);
+            p1.vz += this.gravityZ * this.dt / 1;// * (this.dt / 0.016);
             var x = p1.meshX;
             var y = p1.meshY;
             var z = p1.meshZ;
