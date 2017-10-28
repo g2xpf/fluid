@@ -10,5 +10,5 @@ if [ -e log.hi ]; then
     echo "successfully deleted \"log.hi\""
 fi
 ./log
-gnuplot -e "plot \"output.log\" with lines"
+gnuplot -e "plot \"output.log\" with lines title \"density of particles\""
 echo "successfully plotted"
