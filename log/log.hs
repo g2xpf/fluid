@@ -1,7 +1,8 @@
 import Data.List
 f :: Double -> Double
-f r = (315 / (64 * pi)) * ((h ^ 2 - r ^ 2) ^ 3) / h ^ 9
-  where h = 0.01;
+f r = m * (315 / (64 * pi)) * ((h ^ 2 - r ^ 2) ^ 3) / h ^ 9
+  where h = 0.01
+        m = 0.00020543
 
 main :: IO ()
 main = do
