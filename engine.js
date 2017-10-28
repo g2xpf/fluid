@@ -23,8 +23,8 @@ class Particle {
         this.r = 0.004;  // 0.004 [m] as default 
         this.rho = 0;
         this.av = 0;
-        this.inverseMass = this.mass == 0 ? 0 : 1 / this.mass;
-	    this.inertia = 0.5 * this.r * this.r * this.mass;
+        this.inverseMass = this.mass == 0 ? 0 : 1 / this.mass * 10000000;
+	    this.inertia = 0.5 * this.r * this.r * this.mass * 10000000;
 	    this.inverseInertia = this.inertia == 0 ? 0 : 1 / this.inertia;
         this.meshX;
         this.meshY;
@@ -94,7 +94,7 @@ class ContactConstraint {
         this.r1y = y - obj1.y;
         this.r2x = x - obj2.x;
         this.r2y = y - obj2.y;
-
+        this.baseOverlap = 0.00005;
         this.massN = 0; // effective mass (vertical direction)
         this.massT = 0; // effective mass (normal direction)
 
@@ -114,7 +114,7 @@ class ContactConstraint {
 		const relvx = (this.obj1.vx - this.r1y * this.obj1.av) - (this.obj2.vx - this.r2y * this.obj2.av);
 		const relvy = (this.obj1.vy + this.r1x * this.obj1.av) - (this.obj2.vy + this.r2x * this.obj2.av);
 		const relvN = relvx * this.nx + relvy * this.ny;
-		let e = 0.4; // restitution
+		let e = 0.2; // restitution
 		
 		if (relvN > -1.0){//-0.5) {
 			e = 0; // bodies are just "touching"
@@ -125,8 +125,8 @@ class ContactConstraint {
 			this.targetRelvN = 0;
 		}
 		
-		if (this.overlap > 0.05) {
-			const separationVelocity = (this.overlap - 0.05) * 1.0 / dt;
+		if (this.overlap > this.baseOverlap) {
+			const separationVelocity = (this.overlap - this.baseOverlap) * 1.0 / dt;
 			if (this.targetRelvN < separationVelocity) {
 				this.targetRelvN = separationVelocity;
 			}
@@ -147,7 +147,8 @@ class ContactConstraint {
 		
 		// apply normal impulse
 		this.obj1.vx += impN * this.nx * this.obj1.inverseMass;
-		this.obj1.vy += impN * this.ny * this.obj1.inverseMass;
+		var dy = impN * this.ny * this.obj1.inverseMass; 
+        this.obj1.vy += dy;
 		this.obj1.av += impN * (this.r1x * this.ny - this.r1y * this.nx) * this.obj1.inverseInertia;
 		this.obj2.vx -= impN * this.nx * this.obj2.inverseMass;
 		this.obj2.vy -= impN * this.ny * this.obj2.inverseMass;
@@ -168,13 +169,13 @@ class ContactConstraint {
 		else if (impT < -maxTangentImpulse) impT = -maxTangentImpulse;
 		
 		// apply tangent impulse
-		/*this.obj1.vx += impT * this.tx * this.obj1.inverseMass;
+		this.obj1.vx += impT * this.tx * this.obj1.inverseMass;
 		this.obj1.vy += impT * this.ty * this.obj1.inverseMass;
 		this.obj1.av += impT * (this.r1x * this.ty - this.r1y * this.tx) * this.obj1.inverseInertia;
 		this.obj2.vx -= impT * this.tx * this.obj2.inverseMass;
 		this.obj2.vy -= impT * this.ty * this.obj2.inverseMass;
 		this.obj2.av -= impT * (this.r2x * this.ty - this.r2y * this.tx) * this.obj2.inverseInertia;
-        */
+        
 
         this.obj1.av = 0;
         this.obj2.av = 0;
@@ -192,22 +193,27 @@ class World {
         this.dt = dt;
         this.gravityX = 0.0;
         this.gravityY = 9.8;
+        this.gravityZ = 0.0;
         this.elecX = 0;
         this.elecY = 0;
-        this.k = 0.6;       // gas constant
+        this.elecZ = 0;
+        this.k = 1.0;       // gas constant
+        this.mu = 0.19;      // viscosity constant
         // the radius of influence
+        this.scale = 0.004;
+        this.d = Math.pow(0.00020543 / 600, 1/3.0);
         this.ri = ri;
         this.rho0 = rho0;
+        this.meshNum = 30;
     }
 
     makeMesh(){
-        var meshNum = 20;
-        this.mesh = new Array(meshNum);
-        for(var i = 0; i < meshNum; ++i){
-            this.mesh[i] = new Array(meshNum);
-            for(var j = 0; j < meshNum; ++j){
-                this.mesh[i][j] = new Array(meshNum);
-                for(var k = 0; k < meshNum; ++k){
+        this.mesh = new Array(this.meshNum);
+        for(var i = 0; i < this.meshNum; ++i){
+            this.mesh[i] = new Array(this.meshNum);
+            for(var j = 0; j < this.meshNum; ++j){
+                this.mesh[i][j] = new Array(this.meshNum);
+                for(var k = 0; k < this.meshNum; ++k){
                     this.mesh[i][j][k] = [];
                 }    
             }
@@ -226,10 +232,10 @@ class World {
 
     _addToMesh(){
         Ary.map(particle => {
-            var x = 9 + floor(particle.x / this.ri / 2);
-            var y = 9 + floor(particle.y / this.ri / 2);
-            var z = 9 + floor(particle.z / this.ri / 2);
-            if(0 <= x && x < 20 && 0 <= y && y < 20 && 0 <= z && z < 20){
+            var x = this.meshNum / 2 + floor(particle.x / this.ri / 2) + 1;
+            var y = this.meshNum / 2 + floor(particle.y / this.ri / 2) + 1;
+            var z = this.meshNum / 2 + floor(particle.z / this.ri / 2) + 1;
+            if(0 <= x && x < this.meshNum && 0 <= y && y < this.meshNum && 0 <= z && z < this.meshNum){
                 particle.meshX = x;
                 particle.meshY = y;
                 particle.meshZ = z;
@@ -338,12 +344,7 @@ class World {
     }
 
     // -----------------------------------------------------------------
-
-    addParticle(part){
-        console.log("Add an particle");
-        Ary.add(part, this.particles);
-    };
-
+    
     _power(x, y){
         var ret = 1;
         for(var i = 0; i < y; ++i){
@@ -351,6 +352,16 @@ class World {
         }
         return ret;
     };
+
+    addParticle(part){
+        console.log("Add an particle");
+        Ary.add(part, this.particles);
+    };
+
+    _poly6Kernel(r, h){
+        var alpha = 315 / (64 * PI * this._power(h, 9));
+        return alpha * this._power((this._power(h, 2) - this._power(r, 2)), 3);
+    }
 
     _gradSpikyKernel(r, h){
         var alpha = -45 / (PI * this._power(h, 6));
@@ -361,64 +372,16 @@ class World {
         }
     }
 
-    /*_viscosityKernel(r, h){
-        var alpha = 10 / (3 * PI * h * h);
-        if(0 < r && r <= h){
-            return  alpha * (-this._power(r, 3) / (2 * this._power(h, 3)) + this._power(r, 2) / this._power(h, 2) + h / (2 * r) - 1);
-        }else{
-            return 0;
-        }
-    }
-
-    _deltaViscosityKernel(r, h){
-        var alpha = 10 / (3 * PI * h * h);
-        if(0 < r && r <= h){
-            return  alpha * ((-3) * this._power(r, 2) / (2 * this._power(h, 3)) + 2 * r / this._power(h, 2) - h / (2 * this._power(r, 2)) - 1);
-        }else{
-            return 0;
-        }
-    }*/
-
-    _poly6Kernel(r, h){
-        var alpha = 315 / (64 * PI * this._power(h, 9));
-        if(0 <= r && r <= h){
-            return alpha * this._power((this._power(h, 2) - this._power(r, 2)), 3);
-        }else{
-            return 0;
-        }
-    }
-    
-    /*_gradViscosityKernel(r, h){
-        var alpha = 10 / (3 * PI * this._power(h, 4));
-        if(0 < r && r <= h){
-            return alpha * (-3 * r / (2 * h) + 2 - this._power(h, 3) / (2 * this._power(r, 3)));
-        }else{
-            return 0;
-        }
-    }*/
-
     _laplacianViscosityKernel(r, h){
-        var alpha = 45.0 / (PI * this._power(h, 5));
-        var ret;
-        if(0 < r && r <= h){
-            ret = alpha * (h - r);
-        }else{
-            ret = 0;
-        }
-        return ret;
+        var alpha = 45.0 / (PI * this._power(h, 6));
+        return alpha * (h - r);
     }
 
     _getPressure(rho){
         var gamma = 7;
         var c = 88.5;
-        var ret;
-        if(rho > this.rho0){
-            ret = c * c * this.rho0 / gamma * (Math.pow(rho / this.rho0, gamma) - 1);
-        }else{
-            ret = 0;
-        }
+        return c * c * this.rho0 / gamma * (Math.pow(rho / this.rho0, gamma) - 1);
 
-        return ret;
     }
 
     _getPressure2(rho){
@@ -430,67 +393,61 @@ class World {
         this._meshInit();
         this._addToMesh();
         this._solve();
-        //this._confine();
         this.constraints = [];
         this._detect();
         this._solveConstraints();
         this._integrate();
     };
 
-
-    _confine(){
-        var w = 0.07, h = 0.05, k = 100.9;
-        Ary.map(particle => {
-            var x = particle.x;
-            var y = particle.y;
-            if(x <= -w) particle.vx += k * (-w - x);
-            if(x >= w) particle.vx -= k * (x - w);
-            if(y <= -h) particle.vy += k * (-h - y);
-            if(y >= h) particle.vy -= k *(y - h);
-        }, this.particles);
-    }
-
     _rhoInit(){
         Ary.map(particle => {
-            particle.rho = 0;
+            particle.rho = 200;
         }, this.particles);  
     };
-
 
     _solve(){
         this._rhoInit();
         var len = this.particles.length;
-        var mu = 0.7;
         for(var i = 0; i < len; ++i){
             var p1 = this.particles[i];
             var x = p1.meshX;
             var y = p1.meshY;
             var z = p1.meshZ;
+            var sum = 0.0;
             for(var dz = -1; dz <= 1; ++dz){
                 for(var dy = -1; dy <= 1; ++dy){
                     for(var dx = -1; dx <= 1; ++dx){
                         var nx = x + dx; 
                         var ny = y + dy; 
                         var nz = z + dz;
-                        if(!(0 <= nx && nx < 20 && 0 <= ny && ny < 20 && 0 <= nz && nz < 20)) continue;
+                        if(!(0 <= nx && nx < this.meshNum && 0 <= ny && ny < this.meshNum && 0 <= nz && nz < this.meshNum)) continue;
                         Ary.map( p2 => {
-                            var r = sqrt(this._power(p2.x - p1.x, 2) + this._power(p2.y - p1.y, 2) + this._power(p2.z - p1.z, 2));
-                            var k = this._poly6Kernel(r, this.ri);
-                            p1.rho += p2.mass * k;
+                            if(p1 != p2){
+                                var r = sqrt(this._power(p2.x - p1.x, 2) + this._power(p2.y - p1.y, 2) + this._power(p2.z - p1.z, 2));
+                                if(r < this.ri){
+                                    var k = this._poly6Kernel(r, this.ri);
+                                    sum += p2.mass * k;
+                                }
+                            }
                         }, this.mesh[nx][ny][nz]); 
                     }
                 }
             }
+            p1.rho += sum;
             var rho = p1.rho;
             var p = this._getPressure2(rho);
             p1.p = p;
         }
         for(var i = 0; i < len; ++i){
             var p1 = this.particles[i];
-            p1.vx += this.gravityX * this.dt / 9;// * (this.dt / 0.016);
-            p1.vy += this.gravityY * this.dt / 9;// * (this.dt / 0.016);
-            p1.vz += this.gravityZ * this.dt / 9;// * (this.dt / 0.016);
             if(p1.isStatic) continue;
+            p1.vx += this.elecX;
+            p1.vy += this.elecY;
+            p1.vz += this.elecZ;
+
+            p1.vx += this.gravityX * this.dt / 3;// * (this.dt / 0.016);
+            p1.vy += this.gravityY * this.dt / 3;// * (this.dt / 0.016);
+            p1.vz += this.gravityZ * this.dt / 3;// * (this.dt / 0.016);
             var x = p1.meshX;
             var y = p1.meshY;
             var z = p1.meshZ;
@@ -500,31 +457,36 @@ class World {
                         var nx = x + dx; 
                         var ny = y + dy; 
                         var nz = z + dz;
-                        if(!(0 <= nx && nx < 20 && 0 <= ny && ny < 20 && 0 <= nz && nz < 20)) continue;
+                        if(!(0 <= nx && nx < this.meshNum && 0 <= ny && ny < this.meshNum && 0 <= nz && nz < this.meshNum)) continue;
                         Ary.map(p2 => {
                             //if(i === j) continue;
                             var dx = p2.x - p1.x;
                             var dy = p2.y - p1.y;
                             var dz = p2.z - p1.z;
                             var r = sqrt(this._power(dx, 2) + this._power(dy, 2) + this._power(dz, 2));
+                            if(0 < r && r < this.ri){
+                                // fp : pressure
+                                // fv : viscosity
 
-                            // fp : pressure
-                            // fv : viscosity
+                                var gradP = this._gradSpikyKernel(r, this.ri);
+                                //var fpx = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dx;
+                                //var fpy = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dy;
+                                var fpx = -0.5*(p1.p + p2.p) * gradP * dx / (p1.rho * p2.rho);
+                                var fpy = -0.5*(p1.p + p2.p) * gradP * dy / (p1.rho * p2.rho);
+                                var fpz = -0.5*(p1.p + p2.p) * gradP * dz / (p1.rho * p2.rho);
+                                var gradV = this._laplacianViscosityKernel(r, this.ri);
+                                var fvx = this.mu * (p2.vx - p1.vx) * gradV / (p1.rho * p2.rho);
+                                var fvy = this.mu * (p2.vy - p1.vy) * gradV / (p1.rho * p2.rho);
+                                var fvz = this.mu * (p2.vz - p1.vz) * gradV / (p1.rho * p2.rho);
 
-                            var gradP = this._gradSpikyKernel(r, this.ri);
-                            //var fpx = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dx;
-                            var fpx = ((p1.p + p2.p) / (2 * p2.rho)) * gradP * dx / p1.rho;
-                            //var fpy = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dy;
-                            var fpy = ((p1.p + p2.p) / (2 * p2.rho)) * gradP * dy / p1.rho;
-                            var fpz = ((p1.p + p2.p) / (2 * p2.rho)) * gradP * dz / p1.rho;
-                            var gradV = this._laplacianViscosityKernel(r, this.zi);
-                            var fvx = mu * (p2.vx - p1.vx) / p2.rho * gradV * dx / p1.rho;
-                            var fvy = mu * (p2.vy - p1.vy) / p2.rho * gradV * dy / p1.rho;
-                            var fvz = mu * (p2.vz - p1.vz) / p2.rho * gradV * dz / p1.rho;
+                                if(fvx !== fvx || fvy !== fvy || fvz !== fvz){
+                                    console.error("### PARTICLE GOES OUT OF MESHES' RANGE ###");
+                                }
 
-                            p1.vx += p2.mass * (fpx + fvx) * this.dt;
-                            p1.vy += p2.mass * (fpy + fvy) * this.dt;
-                            p1.vz += p2.mass * (fpz + fvz) * this.dt;
+                                p1.vx += p2.mass * (fpx + fvx) * this.dt;
+                                p1.vy += p2.mass * (fpy + fvy) * this.dt;
+                                p1.vz += p2.mass * (fpz + fvz) * this.dt;
+                            }
                         }, this.mesh[nx][ny][nz]);
                     }
                 }
@@ -536,12 +498,13 @@ class World {
         //console.log(this.elecX, this.elecY);
         Ary.map(particle => {
             //if(!particle.isStatic){
-                particle.vx += this.elecX;
-                particle.vy += this.elecY;
-                particle.vz += this.elecZ;
-                particle.x += particle.vx * this.dt;
-                particle.y += particle.vy * this.dt;
-                particle.z += particle.vz * this.dt;
+            particle.x += particle.vx * this.dt;
+            particle.y += particle.vy * this.dt;
+            particle.z += particle.vz * this.dt;
+
+            // only 2D oparation
+            particle.vz = 0;
+            particle.z = 0;
             //}
         }, this.particles);
     }

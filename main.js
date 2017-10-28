@@ -6,16 +6,16 @@ var main = () => {
 
     // get context
     var ctx = canvas.getContext('2d');
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 0.6;
     
     // call world 
-    var ri = 0.01; // h / 2 : (m / ρ)^1/Dimension
+    var ri = 0.015; // h / 2 : (m / ρ)^1/Dimension
     var timeStep = 0.004;
     var rho0 = 600;
     var world = new World(timeStep, ri, rho0);
     
     // set ratio
-    var pixPerMeter = 800;
+    var pixPerMeter = 1800;
 
     // set user's input
     document.addEventListener("keydown", keyDownFunc);
@@ -25,7 +25,7 @@ var main = () => {
 
     // flags related to drawing
     var drawRadius = 1;
-    var drawMesh = 0;
+    var drawMesh = 1;
     var drs = _ => { drawRadius ^= true; };
     var drm = _ => { drawMesh ^= true; };
     
@@ -81,14 +81,18 @@ var main = () => {
     var userInput = _ => {
         world.elecX = 0;
         world.elecY = 0;
-        var dE = 0.01;
+        var dE = 0.02;
         
-        if(rightFlg) world.k += 0.001;
+        /*if(rightFlg) world.k += 0.001;
         if(leftFlg) world.k -= 0.001;
         if(upFlg) world.rho0 += 0.0001;
         if(downFlg) world.rho0 -= 0.0001;
         world.rho0 = floor(world.rho0 * 100000) / 100000;
-        world.k    = floor(world.k    * 10000) / 10000;
+        world.k    = floor(world.k    * 10000) / 10000;*/
+        if(rightFlg) world.elecX += dE;  
+        if(leftFlg)  world.elecX -= dE; 
+        if(upFlg)    world.elecY -= dE; 
+        if(downFlg)  world.elecY += dE; 
     }
 
     function draw(){
@@ -113,7 +117,7 @@ var main = () => {
             ctx.fillStyle = colorScale(rho);
             ctx.arc(x, y, r, 0, TWO_PI, false);
             ctx.fill();
-            ctx.globalAlpha = 0.4;
+            ctx.globalAlpha = 0.7;
             if(drawRadius){
                 ctx.beginPath();
                 ctx.arc(x, y, ri, 0, TWO_PI, false);
@@ -146,22 +150,56 @@ var main = () => {
     function init(){
         var w = canvas.width / pixPerMeter / 3;
         var h = canvas.height / pixPerMeter / 3;
-        for(var i = 0; i < 5; i+=0.5){
-            for(var j = 0; j < 10; j+=0.5){
-                var x = (-6.0 + i) * 0.040;
-                var y = (-4.0 + j) * 0.040;
-                var z = rand() * 0.040;
-                world.addParticle(new Particle(x, y, z, false));
-            }
+        var d = world.d * 0.87 / world.scale;
+        var x0 = -43.0, y0 = 12.0, z0 = 0.0;
+        var x1 = 43.0, y1 = 24.0, z1 = 0.0; 
+        var ratio = 1.53;
+        console.log(d);
+        for(var z = z0; z <= z1; z += d)
+        for(var y = y0; y <= y1; y += d)
+        for(var x = x0; x <= x1; x += d){
+            x += 0.01 * Math.random();
+            y += 0.01 * Math.random();
+            z += 0.01 * Math.random();
+            world.addParticle(new Particle(x * world.scale * ratio, y * world.scale * ratio, z * world.scale * ratio, false));
         }
         
         var r = min(canvas.width, canvas.height) / pixPerMeter / 3;
         world.makeMesh();
-        world.addWall(new Wall(0, r, 0, 0.12, 2.0, PI / 2));
-        world.addWall(new Wall(r, 0, 0, 0.12, 0.9, 0));
-        world.addWall(new Wall(-r, 0, 0, 0.12, 0.9, 0));
+        /*world.addWall(new Wall(0, 0.6, 0, 20, 0.9, 0));
+        world.addWall(new Wall(0.74, 0, 0, 0.9, 20, 0));
+        world.addWall(new Wall(-0.74, 0, 0, 0.9, 20, 0));
+        */
+        addFrame(50, 30, 1.7);
+        //addFrame(52, 32, 1.71);
+            
     }
     
+    function addFrame(width, height, ratio){
+        var xBox = [];
+        var yBox = [];
+        for(var i = 0; i < width; ++i){
+            xBox.push(i);
+            yBox.push(0);
+            xBox.push(i);
+            yBox.push(height-1);
+        }
+        for(var i = 1; i < height - 1; ++i){
+            xBox.push(0);
+            yBox.push(i);
+            xBox.push(width-1);
+            yBox.push(i);
+        }
+        var getX = x => (x - width / 2) * ratio;
+        var getY = y => (y - height / 2) * ratio;
+        for(var i = 0, len = xBox.length; i < len; ++i){
+            var x = getX(xBox[i]);
+            var y = getY(yBox[i]);
+            var z = 0;
+            world.addParticle(new Particle(x * world.scale * ratio, y * world.scale * ratio, z * world.scale * ratio, true));
+        }
+    }
+
     function moveWall(){
         var omega = 0.002;
         var r = 0.5;
@@ -185,7 +223,7 @@ var main = () => {
     setInterval(() => {
         step();
         draw();
-    }, 8);
+    }, 16);
     
     return { world : world, 
              drs : drs,
