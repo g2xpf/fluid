@@ -9,9 +9,9 @@ var main = () => {
     ctx.lineWidth = 0.6;
     
     // call world 
-    var ri = 0.01; // h / 2 : (m / ρ)^1/Dimension
+    var ri = 0.02; // h / 2 : (m / ρ)^1/Dimension
     var timeStep = 0.004;
-    var rho0 = 600;
+    var rho0 = 82.66;
     var world = new World(timeStep, ri, rho0);
     
     // set ratio
@@ -81,7 +81,7 @@ var main = () => {
     var userInput = _ => {
         world.elecX = 0;
         world.elecY = 0;
-        var dE = 0.02;
+        var dE = 0.1;
         
         /*if(rightFlg) world.k += 0.001;
         if(leftFlg) world.k -= 0.001;
@@ -112,7 +112,7 @@ var main = () => {
             var y = canvas.height / 2 + particle.y * pixPerMeter;
             var r = particle.r * pixPerMeter;
             var ri = world.ri * pixPerMeter;
-            var rho = min(1, max(0, (particle.rho - 1.38) * 1.4));
+            var rho = min(1, max(0, (particle.rho - rho0) * 0.02));
             ctx.beginPath();
             ctx.fillStyle = colorScale(rho);
             ctx.arc(x, y, r, 0, TWO_PI, false);
@@ -151,8 +151,8 @@ var main = () => {
         var w = canvas.width / pixPerMeter / 3;
         var h = canvas.height / pixPerMeter / 3;
         var d = world.d * 0.87 / world.scale;
-        var x0 = -43.0, y0 = 12.0, z0 = 0.0;
-        var x1 = 43.0, y1 = 24.0, z1 = 0.0; 
+        var x0 = -43.0, y0 = -16.0, z0 = 0.0;
+        var x1 = 43.0, y1 = 3.0, z1 = 0.0; 
         var ratio = 1.53;
         console.log(d);
         for(var z = z0; z <= z1; z += d)
@@ -170,8 +170,9 @@ var main = () => {
         world.addWall(new Wall(0.74, 0, 0, 0.9, 20, 0));
         world.addWall(new Wall(-0.74, 0, 0, 0.9, 20, 0));
         */
-        addFrame(50, 30, 1.7);
-        //addFrame(52, 32, 1.71);
+        addFrame(200, 90, 0.9);
+        //addFrame(52, 32, 1.702);
+        //addFrame(54, 34, 1.704);
             
     }
     

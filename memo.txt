@@ -1,1 +1,6 @@
-calculation of "rho" hasn't succeeded yet
+unexpected divergence of particles occurs when a particle isn't surrounded by any other particles
+
+not resolved the boundary condition
+
+the simulation scale doesn't changes correspondingly to the window size
+

@@ -192,13 +192,13 @@ class World {
         this.mesh;
         this.dt = dt;
         this.gravityX = 0.0;
-        this.gravityY = 9.8;
+        this.gravityY = 0.0;
         this.gravityZ = 0.0;
         this.elecX = 0;
         this.elecY = 0;
         this.elecZ = 0;
         this.k = 1.0;       // gas constant
-        this.mu = 0.19;      // viscosity constant
+        this.mu = 0.8;      // viscosity constant
         // the radius of influence
         this.scale = 0.004;
         this.d = Math.pow(0.00020543 / 600, 1/3.0);
@@ -360,7 +360,8 @@ class World {
 
     _poly6Kernel(r, h){
         var alpha = 315 / (64 * PI * this._power(h, 9));
-        return alpha * this._power((this._power(h, 2) - this._power(r, 2)), 3);
+        var ret = alpha * this._power((this._power(h, 2) - this._power(r, 2)), 3);
+        return ret;
     }
 
     _gradSpikyKernel(r, h){
@@ -394,14 +395,14 @@ class World {
         this._addToMesh();
         this._solve();
         this.constraints = [];
-        this._detect();
-        this._solveConstraints();
+        //this._detect();
+        //this._solveConstraints();
         this._integrate();
     };
 
     _rhoInit(){
         Ary.map(particle => {
-            particle.rho = 170;
+            particle.rho = 0;
         }, this.particles);  
     };
 
@@ -425,8 +426,8 @@ class World {
                             if(p1 != p2){
                                 var r = sqrt(this._power(p2.x - p1.x, 2) + this._power(p2.y - p1.y, 2) + this._power(p2.z - p1.z, 2));
                                 if(r < this.ri){
-                                    var k = this._poly6Kernel(r, this.ri);
-                                    sum += p2.mass * k;
+                                    var k = p2.mass * this._poly6Kernel(r, this.ri);
+                                    sum += k;
                                 }
                             }
                         }, this.mesh[nx][ny][nz]); 
@@ -445,9 +446,9 @@ class World {
             p1.vy += this.elecY;
             p1.vz += this.elecZ;
 
-            p1.vx += this.gravityX * this.dt / 1;// * (this.dt / 0.016);
-            p1.vy += this.gravityY * this.dt / 1;// * (this.dt / 0.016);
-            p1.vz += this.gravityZ * this.dt / 1;// * (this.dt / 0.016);
+            p1.vx += this.gravityX * this.dt;
+            p1.vy += this.gravityY * this.dt;
+            p1.vz += this.gravityZ * this.dt;
             var x = p1.meshX;
             var y = p1.meshY;
             var z = p1.meshZ;
@@ -471,9 +472,9 @@ class World {
                                 var gradP = this._gradSpikyKernel(r, this.ri);
                                 //var fpx = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dx;
                                 //var fpy = (-p2.mass * (p1.p / (p1.rho * p1.rho) + p2.p / (p2.rho * p2.rho)) * gradP) * dy;
-                                var fpx = -0.5*(p1.p + p2.p) * gradP * dx / (p1.rho * p2.rho);
-                                var fpy = -0.5*(p1.p + p2.p) * gradP * dy / (p1.rho * p2.rho);
-                                var fpz = -0.5*(p1.p + p2.p) * gradP * dz / (p1.rho * p2.rho);
+                                var fpx = 0.5*(p1.p + p2.p) * gradP * dx / (p1.rho * p2.rho);
+                                var fpy = 0.5*(p1.p + p2.p) * gradP * dy / (p1.rho * p2.rho);
+                                var fpz = 0.5*(p1.p + p2.p) * gradP * dz / (p1.rho * p2.rho);
                                 var gradV = this._laplacianViscosityKernel(r, this.ri);
                                 var fvx = this.mu * (p2.vx - p1.vx) * gradV / (p1.rho * p2.rho);
                                 var fvy = this.mu * (p2.vy - p1.vy) * gradV / (p1.rho * p2.rho);
@@ -486,6 +487,9 @@ class World {
                                 p1.vx += p2.mass * (fpx + fvx) * this.dt;
                                 p1.vy += p2.mass * (fpy + fvy) * this.dt;
                                 p1.vz += p2.mass * (fpz + fvz) * this.dt;
+                                if(p1.vx > 500 || p1.vy > 500 || p1.vz > 500){
+                                    console.log("hoge");
+                                }
                             }
                         }, this.mesh[nx][ny][nz]);
                     }
