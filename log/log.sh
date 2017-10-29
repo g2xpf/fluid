@@ -10,5 +10,7 @@ if [ -e ./log.hi ]; then
     echo "successfully deleted \"log.hi\""
 fi
 ./log
-gnuplot -e "plot \"./output.log\" with lines title \"density of particles\""
+gnuplot -e "set xlabel \"r / h\";
+set ylabel \"rho[kg/m^3]\";
+plot \"./output1.log\" with lines title \"p1 of particles\", \"./output2.log\" with lines title \"p2 of particles\""
 echo "successfully plotted"

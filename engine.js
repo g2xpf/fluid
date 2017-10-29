@@ -19,10 +19,13 @@ class Particle {
         this.vz = 0;
         this.mass = 0.00020543;      // [kg]
         this.isStatic = isFluid;
-        this.p = 0;     
+        this.p = 0;
         this.r = 0.004;  // 0.004 [m] as default 
         this.rho = 0;
         this.av = 0;
+        this.fx = 0;
+        this.fy = 0;
+        this.fz = 0;
         this.inverseMass = this.mass == 0 ? 0 : 1 / this.mass * 10000000;
 	    this.inertia = 0.5 * this.r * this.r * this.mass * 10000000;
 	    this.inverseInertia = this.inertia == 0 ? 0 : 1 / this.inertia;
@@ -192,13 +195,13 @@ class World {
         this.mesh;
         this.dt = dt;
         this.gravityX = 0.0;
-        this.gravityY = 0.0;
+        this.gravityY = 9.8;
         this.gravityZ = 0.0;
         this.elecX = 0;
         this.elecY = 0;
         this.elecZ = 0;
         this.k = 1.0;       // gas constant
-        this.mu = 0.8;      // viscosity constant
+        this.mu = 0.2;      // viscosity constant
         // the radius of influence
         this.scale = 0.004;
         this.d = Math.pow(0.00020543 / 600, 1/3.0);
@@ -380,7 +383,7 @@ class World {
 
     _getPressure(rho){
         var gamma = 7;
-        var c = 88.5;
+        var c = 0.5;
         return c * c * this.rho0 / gamma * (Math.pow(rho / this.rho0, gamma) - 1);
 
     }
@@ -395,8 +398,8 @@ class World {
         this._addToMesh();
         this._solve();
         this.constraints = [];
-        //this._detect();
-        //this._solveConstraints();
+        this._detect();
+        this._solveConstraints();
         this._integrate();
     };
 
@@ -487,7 +490,7 @@ class World {
                                 p1.vx += p2.mass * (fpx + fvx) * this.dt;
                                 p1.vy += p2.mass * (fpy + fvy) * this.dt;
                                 p1.vz += p2.mass * (fpz + fvz) * this.dt;
-                                if(p1.vx > 500 || p1.vy > 500 || p1.vz > 500){
+                                if(abs(p1.vx) > 100 || abs(p1.vy) > 100 || abs(p1.vz > 100)){
                                     console.log("hoge");
                                 }
                             }

@@ -24,8 +24,8 @@ var main = () => {
     leftFlg = rightFlg = upFlg = downFlg = false;
 
     // flags related to drawing
-    var drawRadius = 1;
-    var drawMesh = 1;
+    var drawRadius = 0;
+    var drawMesh = 0;
     var drs = _ => { drawRadius ^= true; };
     var drm = _ => { drawMesh ^= true; };
     
@@ -151,8 +151,8 @@ var main = () => {
         var w = canvas.width / pixPerMeter / 3;
         var h = canvas.height / pixPerMeter / 3;
         var d = world.d * 0.87 / world.scale;
-        var x0 = -43.0, y0 = -16.0, z0 = 0.0;
-        var x1 = 43.0, y1 = 3.0, z1 = 0.0; 
+        var x0 = -32.0, y0 = -10.0, z0 = 0.0;
+        var x1 = 32.0, y1 = 24.0, z1 = 0.0; 
         var ratio = 1.53;
         console.log(d);
         for(var z = z0; z <= z1; z += d)
@@ -166,10 +166,11 @@ var main = () => {
         
         var r = min(canvas.width, canvas.height) / pixPerMeter / 3;
         world.makeMesh();
-        /*world.addWall(new Wall(0, 0.6, 0, 20, 0.9, 0));
-        world.addWall(new Wall(0.74, 0, 0, 0.9, 20, 0));
-        world.addWall(new Wall(-0.74, 0, 0, 0.9, 20, 0));
-        */
+        world.addWall(new Wall(0, -0.3, 0, 20, 0.3, 0));
+        world.addWall(new Wall(0.65, 0, 0, 0.9, 20, 0));
+        world.addWall(new Wall(-0.65, 0, 0, 0.9, 20, 0));
+        world.addWall(new Wall(0, 0.6, 0, 20, 0.9, 0));
+        
         addFrame(200, 90, 0.9);
         //addFrame(52, 32, 1.702);
         //addFrame(54, 34, 1.704);
@@ -197,7 +198,7 @@ var main = () => {
             var x = getX(xBox[i]);
             var y = getY(yBox[i]);
             var z = 0;
-            world.addParticle(new Particle(x * world.scale * ratio, y * world.scale * ratio, z * world.scale * ratio, true));
+            //world.addParticle(new Particle(x * world.scale * ratio, y * world.scale * ratio, z * world.scale * ratio, true));
         }
     }
 
@@ -220,10 +221,30 @@ var main = () => {
         confine();
     }
     
+    var time = (function* (){
+        var i = 0;
+        var start = new Date(), end;
+        var t, timeCount = 30, log;
+        while(1){
+            if(i++ % timeCount === 1){
+                end = new Date();
+                t = end - start;
+                log = floor(1000/t*timeCount);
+                ctx.fillText("fps : " + floor(1000/t*timeCount) + "fps", 30, 90);
+                start = new Date();
+            }else{
+                ctx.fillText("fps : " + log + "fps", 30, 90);
+            }
+            yield;
+        }
+    })();
+
     init();
+    var start, end;
     setInterval(() => {
         step();
         draw();
+        time.next();
     }, 16);
     
     return { world : world, 
