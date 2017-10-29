@@ -81,7 +81,7 @@ var main = () => {
     var userInput = _ => {
         world.elecX = 0;
         world.elecY = 0;
-        var dE = 0.1;
+        var dE = 20;
         
         /*if(rightFlg) world.k += 0.001;
         if(leftFlg) world.k -= 0.001;
@@ -151,7 +151,7 @@ var main = () => {
         var w = canvas.width / pixPerMeter / 3;
         var h = canvas.height / pixPerMeter / 3;
         var d = world.d * 0.87 / world.scale;
-        var x0 = -32.0, y0 = -10.0, z0 = 0.0;
+        var x0 = -32.0, y0 = 12.0, z0 = 0.0;
         var x1 = 32.0, y1 = 24.0, z1 = 0.0; 
         var ratio = 1.53;
         console.log(d);

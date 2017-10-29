@@ -445,13 +445,10 @@ class World {
         for(var i = 0; i < len; ++i){
             var p1 = this.particles[i];
             if(p1.isStatic) continue;
-            p1.vx += this.elecX;
-            p1.vy += this.elecY;
-            p1.vz += this.elecZ;
-
-            p1.vx += this.gravityX * this.dt;
-            p1.vy += this.gravityY * this.dt;
-            p1.vz += this.gravityZ * this.dt;
+            
+            p1.fx = 0;
+            p1.fy = 0;
+            p1.fz = 0;
             var x = p1.meshX;
             var y = p1.meshY;
             var z = p1.meshZ;
@@ -487,17 +484,20 @@ class World {
                                     console.error("### PARTICLE GOES OUT OF MESHES' RANGE ###");
                                 }
 
-                                p1.vx += p2.mass * (fpx + fvx) * this.dt;
-                                p1.vy += p2.mass * (fpy + fvy) * this.dt;
-                                p1.vz += p2.mass * (fpz + fvz) * this.dt;
-                                if(abs(p1.vx) > 100 || abs(p1.vy) > 100 || abs(p1.vz > 100)){
-                                    console.log("hoge");
-                                }
+                                p1.fx += p2.mass * (fpx + fvx);
+                                p1.fy += p2.mass * (fpy + fvy);
+                                p1.fz += p2.mass * (fpz + fvz);
                             }
                         }, this.mesh[nx][ny][nz]);
                     }
                 }
             }
+            p1.fx += this.elecX;
+            p1.fy += this.elecY;
+            p1.fz += this.elecZ;
+            p1.fx += this.gravityX;
+            p1.fy += this.gravityY;
+            p1.fz += this.gravityZ;
         }
     }
 
@@ -505,6 +505,9 @@ class World {
         //console.log(this.elecX, this.elecY);
         Ary.map(particle => {
             //if(!particle.isStatic){
+            particle.vx += particle.fx * this.dt;
+            particle.vy += particle.fy * this.dt;
+            particle.vz += particle.fz * this.dt;
             particle.x += particle.vx * this.dt;
             particle.y += particle.vy * this.dt;
             particle.z += particle.vz * this.dt;
