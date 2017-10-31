@@ -9,7 +9,6 @@ var min = (x, y) => Math.min(x, y);
 var max = (x, y) => Math.max(x, y);
 var floor = x => Math.floor(x);
 var isZero = x => x == 0;
-var pow = (x, y) => Math.pow(x, y);
 class Particle {
     constructor(x, y, z, isFluid){
         this.x = x;
@@ -196,13 +195,13 @@ class World {
         this.mesh;
         this.dt = dt;
         this.gravityX = 0.0;
-        this.gravityY = 9.8;
+        this.gravityY = 9.8 / 3;
         this.gravityZ = 0.0;
         this.elecX = 0;
         this.elecY = 0;
         this.elecZ = 0;
         this.k = 1.0;       // gas constant
-        this.mu = 0.5;      // viscosity constant
+        this.mu = 0.6;      // viscosity constant
         // the radius of influence
         this.scale = 0.004;
         this.d = Math.pow(0.00020543 / 600, 1/3.0);
@@ -280,6 +279,7 @@ class World {
                         var worldX = particle.x - r1 * normalX;
                         var worldY = particle.y - r1 * normalY;
                         var overlap = ci.overlap;
+
                         this._addContact(new ContactConstraint(particle, wall, worldX, worldY, normalX, normalY, overlap));
                     }
                 }
@@ -438,9 +438,9 @@ class World {
                 }
             }
             p1.rho += sum;
-           // if(p1.rho > 200){
-           //     console.log("hoge");
-           // }
+            if(p1.rho > 800){
+                console.log("hoge");
+            }
             var rho = p1.rho;
             var p = this._getPressure(rho);
             p1.p = p;
@@ -501,41 +501,9 @@ class World {
             p1.fx += this.gravityX;
             p1.fy += this.gravityY;
             p1.fz += this.gravityZ;
-
-            var fx = p1.fx, fy = p1.fy, fz = p1.fz; var fr = fx*fx+fy*fy+fz*fz;
-            var fLim = 100;
-            if(fr >= fLim * fLim){
-                p1.fx *= fLim / sqrt(fr);
-                p1.fy *= fLim / sqrt(fr);
-                p1.fz *= fLim / sqrt(fr);
-            }
         }
     }
 
-    confine(width, height, pixPerMeter){
-        width /= pixPerMeter;
-        height /= pixPerMeter;
-        var ratio = 0.34;
-        var strength = 0.9;
-        Ary.map(particle => {
-            if(particle.x > width * ratio){
-                particle.x = width * ratio;
-                particle.vx = -abs(particle.vx*strength);
-            }
-            if(particle.x < -width * ratio){
-                particle.x = -width * ratio;
-                particle.vx = abs(particle.vx*strength);
-            }
-            if(particle.y > height * ratio){
-                particle.y = height * ratio;
-                particle.vy = -abs(particle.vy*strength);
-            }
-            if(particle.y < -height * ratio){
-                particle.y = -height * ratio;
-                particle.vy = abs(particle.vy*strength);
-            }
-        }, this.particles);
-    }
 
     _integrate(){
         //console.log(this.elecX, this.elecY);
@@ -544,12 +512,11 @@ class World {
             particle.vx += particle.fx * this.dt;
             particle.vy += particle.fy * this.dt;
             particle.vz += particle.fz * this.dt;
-            
-            //var r2 = particle.vx * particle.vx + particle.vy * particle.vy;
-            //if(r2 > 100){
-            //    particle.vx *= 10 / sqrt(r2);
-            //    particle.vy *= 10 / sqrt(r2);
-            //}
+            var r2 = particle.vx * particle.vx + particle.vy * particle.vy;
+            if(r2 > 100){
+                particle.vx *= 10 / sqrt(r2);
+                particle.vy *= 10 / sqrt(r2);
+            }
             particle.x += particle.vx * this.dt;
             particle.y += particle.vy * this.dt;
             particle.z += particle.vz * this.dt;
