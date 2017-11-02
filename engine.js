@@ -202,7 +202,7 @@ class World {
         this.elecY = 0;
         this.elecZ = 0;
         this.k = 1.0;       // gas constant
-        this.mu = 0.5;      // viscosity constant
+        this.mu = 0.24;      // viscosity constant
         // the radius of influence
         this.scale = 0.004;
         this.d = Math.pow(0.00020543 / 600, 1/3.0);
@@ -383,7 +383,7 @@ class World {
 
     _getPressure(rho){
         var gamma = 7;
-        var c = 0.9;
+        var c = 0.5;
         return c * c * this.rho0 / gamma * (Math.pow(rho / this.rho0, gamma) - 1);
 
     }
@@ -517,22 +517,23 @@ class World {
         height /= pixPerMeter;
         var ratio = 0.34;
         var strength = 0.9;
+        var base = 0.03;
         Ary.map(particle => {
             if(particle.x > width * ratio){
                 particle.x = width * ratio;
-                particle.vx = -abs(particle.vx*strength);
+                particle.vx = -base -abs(particle.vx*strength);
             }
             if(particle.x < -width * ratio){
                 particle.x = -width * ratio;
-                particle.vx = abs(particle.vx*strength);
+                particle.vx = base + abs(particle.vx*strength);
             }
             if(particle.y > height * ratio){
                 particle.y = height * ratio;
-                particle.vy = -abs(particle.vy*strength);
+                particle.vy = -base -abs(particle.vy*strength);
             }
             if(particle.y < -height * ratio){
                 particle.y = -height * ratio;
-                particle.vy = abs(particle.vy*strength);
+                particle.vy = base + abs(particle.vy*strength);
             }
         }, this.particles);
     }

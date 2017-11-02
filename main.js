@@ -14,7 +14,7 @@ var main = () => {
     ctx.lineWidth = 0.6;
     
     // call world 
-    var ri = 0.024; // h / 2 : (m / ρ)^1/Dimension
+    var ri = 0.02//0.024; // h / 2 : (m / ρ)^1/Dimension
     var timeStep = 0.004;
     var rho0 = 80;//82.66;
     var world = new World(timeStep, ri, rho0);
@@ -25,8 +25,8 @@ var main = () => {
     // set user's input
     document.addEventListener("keydown", keyDownFunc);
     document.addEventListener("keyup", keyUpFunc);
-    var leftFlg, rightFlg, upFlg, downFlg, aFlg, dFlg;
-    leftFlg = rightFlg = upFlg = downFlg = aFlg = dFlg = false;
+    var leftFlg, rightFlg, upFlg, downFlg, aFlg, dFlg, spaceFlg;
+    leftFlg = rightFlg = upFlg = downFlg = aFlg = dFlg = spaceFlg = false;
 
     // flags related to drawing
     var drawRadius = 0;
@@ -57,6 +57,7 @@ var main = () => {
         if (e.keyCode == 39) rightFlg = true;
         if (e.keyCode == 65) aFlg = true;
         if (e.keyCode == 68) dFlg = true;
+        if (e.keyCode == 32) spaceFlg = true;
     }
 
     function keyUpFunc(e){
@@ -66,6 +67,8 @@ var main = () => {
         if (e.keyCode == 39) rightFlg = false;
         if (e.keyCode == 65) aFlg = false;
         if (e.keyCode == 68) dFlg = false;
+        if (e.keyCode == 32) spaceFlg = false;
+            
     }
 
     var fillRect = (x, y, w, h, theta) => {
@@ -101,7 +104,17 @@ var main = () => {
             world = new World(timeStep, ri, rho0); 
             init();
         }
+        if(spaceFlg){
+            var ratio = 1.53;
+            for(var i = 0; i < 4; ++i){
+                var x = 3 * Math.random();
+                var y = 3 * Math.random();
+                var z = 0;//0.01 * Math.random();
+                world.addParticle(new Particle(x * world.scale * ratio, y * world.scale * ratio, z * world.scale * ratio, false));
+            }
+        }
     }
+
 
     function draw(){
         ctx.fillStyle = "white";
